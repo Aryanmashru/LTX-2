@@ -2,7 +2,7 @@ import logging
 from collections.abc import Iterator
 
 import torch
-
+import soundfile as sf
 from ltx_core.components.diffusion_steps import EulerDiffusionStep
 from ltx_core.components.guiders import MultiModalGuider, MultiModalGuiderParams
 from ltx_core.components.noisers import GaussianNoiser
@@ -165,12 +165,14 @@ def main() -> None:
     logging.getLogger().setLevel(logging.INFO)
     parser = default_1_stage_arg_parser()
     args = parser.parse_args()
+
     pipeline = TI2VidOneStagePipeline(
         checkpoint_path=args.checkpoint_path,
         gemma_root=args.gemma_root,
         loras=args.lora,
         fp8transformer=args.enable_fp8,
     )
+
     video, audio = pipeline(
         prompt=args.prompt,
         negative_prompt=args.negative_prompt,
@@ -199,15 +201,21 @@ def main() -> None:
         images=args.images,
     )
 
+    # ✅ SAVE VIDEO
     encode_video(
         video=video,
         fps=args.frame_rate,
-        audio=audio,
-        audio_sample_rate=AUDIO_SAMPLE_RATE,
-        output_path=args.output_path,
-        video_chunks_number=1,
+        output_path="output.mp4"
     )
 
+    # ✅ SAVE AUDIO
+    sf.write(
+        file="output.wav",
+        data=audio.cpu().numpy(),
+        samplerate=AUDIO_SAMPLE_RATE
+    )
 
+    print("✅ Saved output.mp4 and output.wav")
+    
 if __name__ == "__main__":
     main()
